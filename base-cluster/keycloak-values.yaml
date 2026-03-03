@@ -1,0 +1,128 @@
+global:
+  security:
+    allowInsecureImages: true
+image:
+  repository: bitnamilegacy/keycloak
+postgresql:
+  enabled: false
+
+proxyHeaders: xforwarded
+httpEnabled: true
+
+containerSecurityContext:
+  enabled: false
+externalDatabase:
+  host: postgres.default.svc.cluster.local
+  database: keycloak
+  user: keycloak
+  existingSecret: keycloak.postgres.credentials.postgresql.acid.zalan.do
+  existingSecretPasswordKey: password
+ingress:
+  enabled: true
+  hostname: keycloak.127.0.0.1.nip.io
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+resources:
+  requests:
+    memory: "500Mi"
+    cpu: "0.5"
+  limits:
+    memory: "2Gi"
+    cpu: "1"
+command:
+  - /bin/bash
+  - -c
+args:
+  - |
+    #!/bin/sh
+    export $(cat /did-material/did.env)
+    exec /opt/bitnami/scripts/keycloak/entrypoint.sh /opt/bitnami/scripts/keycloak/run.sh  
+initContainers:
+  - name: set-read-permissions
+    image: busybox
+    command: ["sh", "-c", "chmod -R a+r /keystore"]
+    securityContext:
+      runAsUser: 0
+    volumeMounts:
+      - name: keystore
+        mountPath: /keystore
+  - name: get-did
+    image: ubuntu
+    command:
+      - /bin/bash
+    args:
+      - -ec
+      - |
+        #!/bin/bash
+        apt-get -y update; apt-get -y install wget; apt-get -y install sed;
+        
+        cd /did-material
+        wget http://did-helper:8080/did-material/did.env
+        echo $(cat /did-material/did.env)
+    volumeMounts:
+      - name: did-material
+        mountPath: /did-material
+
+  - name: prepare-envs
+    image: docker.io/bitnamilegacy/keycloak:26.3.3-debian-12-r0
+    command:
+      - /bin/sh
+    args:
+      - -ec
+      - |
+        #!/bin/sh
+        export $(cat /etc/env/did.env)
+        cp -r /opt/bitnami/scripts/. /env-update/
+        echo "export DID=$DID" >> /env-update/keycloak-env.sh
+        cat /env-update/keycloak-env.sh
+    volumeMounts:
+      - name: kc-env
+        mountPath: /env-update
+      - name: did-material
+        mountPath: /etc/env
+
+extraVolumeMounts:
+  - name: did-material
+    mountPath: /did-material
+  - name: keystore
+    mountPath: /keystore
+    readOnly: true
+  - name: did-material
+    mountPath: "/etc/env"
+    readOnly: true
+  - name: realms
+    mountPath: /opt/bitnami/keycloak/data/import
+  - name: kc-env
+    mountPath: /opt/bitnami/scripts/keycloak-env.sh
+    subPath: keycloak-env.sh
+
+extraVolumes:
+  - name: kc-env
+    emptyDir: { }
+  - name: did-material
+    emptyDir: { }
+  - name: realms
+    configMap:
+      name: test-realm-realm
+  - name: keystore
+    persistentVolumeClaim:
+      claimName: did-material-pvc
+
+extraEnvVars:
+  - name: KEYCLOAK_LOG_LEVEL
+    value: INFO
+  - name: KC_HOSTNAME
+    value: https://keycloak.127.0.0.1.nip.io
+  - name: KEYCLOAK_EXTRA_ARGS
+    value: "--import-realm"
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: "admin"
+  - name: KC_FEATURES
+    value: "oid4vc-vci"
+  - name: STORE_PASS
+    valueFrom:
+      secretKeyRef:
+        name: did-helper-secret
+        key: store-pass
+  - name: KC_HEAP_SIZE
+    value: "1024m"

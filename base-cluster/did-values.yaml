@@ -1,0 +1,28 @@
+service:
+  port: 8080
+ingress:
+  enabled: true
+  hosts:
+    - host: did-helper.127.0.0.1.nip.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+config:
+  server:
+    hostUrl: "http://did-helper.127.0.0.1.nip.io:8080/did-material"
+    didType: key
+    outputFormat: env
+    keystorePasswordSecretName: did-helper-secret
+    keystorePasswordSecretKey: store-pass
+    keyAlias: myAlias
+  generateKey:
+    enabled: true
+
+volumeMounts:
+  - name: did-material
+    mountPath: /cert
+
+volumes:
+  - name: did-material
+    persistentVolumeClaim:
+      claimName: did-material-pvc

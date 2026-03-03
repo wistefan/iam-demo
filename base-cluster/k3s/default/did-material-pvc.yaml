@@ -1,0 +1,28 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: did-material-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: default
+---
+# Need to create the PV separately as local-path provisioner does not support RWX
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: did-material-pv
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /opt/data/did-material
+    type: ""
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: default
+  volumeMode: Filesystem

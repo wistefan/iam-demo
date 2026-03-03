@@ -1,0 +1,70 @@
+ingress:
+  enabled: true
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  path: /
+  hosts:
+    - grafana.127.0.0.1.nip.io
+
+extraVolumes:
+  - name: custom-ca
+    secret:
+      secretName: root-ca
+  - name: ssl-certs
+    emptyDir: {}
+
+extraVolumeMounts:
+  - name: ssl-certs
+    mountPath: /etc/ssl/certs
+
+extraInitContainers:
+  - name: update-ca
+    image: grafana/grafana:latest
+    command:
+      - sh
+      - -c
+      - |
+        cp /custom-ca/custom-ca.crt /usr/local/share/ca-certificates/custom-ca.crt
+        update-ca-certificates
+        cp -r /etc/ssl/certs/* /work-certs/
+    volumeMounts:
+      - name: ssl-certs
+        mountPath: /work-certs
+      - name: custom-ca
+        mountPath: /custom-ca
+        subPath: cacert.pem
+env:
+  HTTP_PROXY: "http://squid-proxy.infra.svc.cluster.local:8888"
+  HTTPS_PROXY: "http://squid-proxy.infra.svc.cluster.local:8888"
+  NO_PROXY: "localhost,127.0.0.1,.svc,.cluster.local,10.0.0.0/8"
+
+assertNoLeakedSecrets: false     
+grafana.ini:
+  log:
+    mode: console
+    level: trace
+    filters: auth:debug oauth:debug login:debug
+  server:
+    root_url: https://grafana.127.0.0.1.nip.io
+  auth:
+    disable_login_form: true
+    oauth_auto_login: true
+  auth.generic_oauth:
+      enabled: true
+      name: OAuth
+      allow_sign_up: true
+      client_id: grafana-oauth
+      scopes: openid email profile offline_access roles
+      email_attribute_path: email    
+      login_attribute_path: username
+      name_attribute_path: full_name
+      auth_url: https://verifier.org/api/v1/authorization
+      token_url: https://verifier.org/services/grafana-oauth/token
+      role_attribute_path: contains(roles[*], 'Admin') && 'Admin' || contains(roles[*], 'Editor') && 'Editor' || 'Viewer'
+      tls_skip_verify_insecure: true
+      #role_attribute_path: role
+      # keycloak grafana
+      #client_secret: demo
+      #auth_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/auth
+      #token_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/token
+      #role_attribute_path: contains(resource_access."grafana-oauth".roles[*], 'Admin') && 'Admin' || contains(resource_access."grafana-oauth".roles[*], 'Editor') && 'Editor' || 'Viewer'
