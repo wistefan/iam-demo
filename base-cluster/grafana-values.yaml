@@ -58,13 +58,13 @@ grafana.ini:
       email_attribute_path: email    
       login_attribute_path: username
       name_attribute_path: full_name
-      auth_url: https://verifier.org/api/v1/authorization
-      token_url: https://verifier.org/services/grafana-oauth/token
-      role_attribute_path: contains(roles[*], 'Admin') && 'Admin' || contains(roles[*], 'Editor') && 'Editor' || 'Viewer'
       tls_skip_verify_insecure: true
-      #role_attribute_path: role
+      # verifier grafan
+      # auth_url: https://verifier.org/api/v1/authorization
+      # token_url: https://verifier.org/services/grafana-oauth/token
+      # role_attribute_path: contains(roles[*], 'Admin') && 'Admin' || contains(roles[*], 'Editor') && 'Editor' || 'Viewer'
       # keycloak grafana
-      #client_secret: demo
-      #auth_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/auth
-      #token_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/token
-      #role_attribute_path: contains(resource_access."grafana-oauth".roles[*], 'Admin') && 'Admin' || contains(resource_access."grafana-oauth".roles[*], 'Editor') && 'Editor' || 'Viewer'
+      client_secret: demo
+      auth_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/auth
+      token_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/token
+      role_attribute_path: contains(resource_access."grafana-oauth".roles[*], 'Admin') && 'Admin' || contains(resource_access."grafana-oauth".roles[*], 'Editor') && 'Editor' || 'Viewer'

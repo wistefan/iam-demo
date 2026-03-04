@@ -16,14 +16,17 @@ Setup the local cluster:
   kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.30/deploy/local-path-storage.yaml
 ```
 
+## Install all components
 
-
-## Keycloak and DID
-
-Install keycloak and in order to prepare already for the Verifiable Credentials usage the did-helper:
+Install keycloak and in order to prepare already for the Verifiable Credentials did-helper and verifier:
 
 ```sh
 helm install did-helper fiware/did-helper -f did-values.yaml
+```
+
+```sh
+helm repo add vc-authentication https://fiware.github.io/vc-authentication/
+helm install authentication vc-authentication/vc-authentication -f values.yaml
 ```
 
 ```sh
@@ -43,14 +46,6 @@ Go to https://grafana.127.0.0.1.nip.io and login as "admin":"test" and "employee
 
 
 ## Verifier
-
-Prepare Grafana for OID4VP:
-
-```sh
-helm repo add vc-authentication https://fiware.github.io/vc-authentication/
-helm install authentication vc-authentication/vc-authentication -f values.yaml
-```
--> got to [grafana-values.yaml](./base-cluster/grafana-values.yaml) and change to verifier configuration.
 
 Configure the grafana-oauth client in the credentials-config-service:
 
@@ -159,6 +154,14 @@ curl  -X POST \
   }'
 ```
 
+## Update Grafana to use Verifiable Credentials
+
+
+-> got to [grafana-values.yaml](./base-cluster/grafana-values.yaml) and change to verifier configuration.
+
+```sh
+  helm upgrade grafana grafana-community/grafana -f grafana-values.yaml
+```
 
 ## Get Credentials
 
