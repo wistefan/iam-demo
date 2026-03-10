@@ -59,10 +59,10 @@ grafana.ini:
       login_attribute_path: username
       name_attribute_path: full_name
       tls_skip_verify_insecure: true
-      # verifier grafan
-      # auth_url: https://verifier.org/api/v1/authorization
-      # token_url: https://verifier.org/services/grafana-oauth/token
-      # role_attribute_path: contains(roles[*], 'Admin') && 'Admin' || contains(roles[*], 'Editor') && 'Editor' || 'Viewer'
+      # verifier grafana
+      #auth_url: https://verifier.org/api/v1/authorization
+      #token_url: https://verifier.org/services/grafana-oauth/token
+      #role_attribute_path: contains(roles[*], 'Admin') && 'Admin' || contains(roles[*], 'Editor') && 'Editor' || 'Viewer'
       # keycloak grafana
       client_secret: demo
       auth_url: https://keycloak.127.0.0.1.nip.io/realms/test-realm/protocol/openid-connect/auth

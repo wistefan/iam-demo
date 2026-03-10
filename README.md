@@ -26,7 +26,7 @@ helm install did-helper fiware/did-helper -f did-values.yaml
 
 ```sh
 helm repo add vc-authentication https://fiware.github.io/vc-authentication/
-helm install authentication vc-authentication/vc-authentication -f values.yaml
+helm install authentication vc-authentication/vc-authentication --version 1.1.0 -f values.yaml
 ```
 
 ```sh
@@ -39,6 +39,8 @@ helm install keycloak oci://registry-1.docker.io/bitnamicharts/keycloak -f keycl
 helm repo add grafana-community https://grafana-community.github.io/helm-charts
 helm install grafana grafana-community/grafana -f grafana-values.yaml
 ```
+
+> Wait for everything to be running ```watch kubectl get pods```
 
 ## Traditional login
 
@@ -81,12 +83,24 @@ curl  -X POST \
               "newKey": "email"
             },
             {
+              "originalKey": "credentialSubject.subject",
+              "newKey": "sub"
+            },
+            {
               "originalKey": "credentialSubject.firstName",
               "newKey": "name"
             },
             {
               "originalKey": "credentialSubject.firstName",
               "newKey": "displayname"
+            },
+            {
+              "originalKey": "credentialSubject.firstName",
+              "newKey": "given_name"
+            },
+            {
+              "originalKey": "credentialSubject.email",
+              "newKey": "preferred_username"
             },
             {
               "originalKey": "credentialSubject.email",
@@ -114,12 +128,20 @@ curl  -X POST \
                 }
               },
               {
-                "id": "subject",
+                "id": "firstname",
                 "path": ["$.firstName"]
               },
               {
                 "id": "roles",
                 "path": ["$.roles"]
+              },
+              {
+                "id": "subject",
+                "path": ["$.subject"]
+              },
+              {
+                "id": "email",
+                "path": ["$.email"]
               }
             ]
           },
@@ -137,6 +159,11 @@ curl  -X POST \
 }'
 ```
 
+Get Issuer ID: 
+```sh
+export $(curl -x localhost:8888 http://did-helper.127.0.0.1.nip.io/did-material/did.env)
+```
+
 Trust Keycloak as Issuer:
 
 ```sh
@@ -144,14 +171,14 @@ curl  -X POST \
   'http://til.127.0.0.1.nip.io:8080/issuer' \
   --header 'Accept: */*' \
   --header 'Content-Type: application/json' \
-  --data-raw '{
-    "did": "did:key:zDnaeVNConXu7B6xqvNSsnH9KogL4Y1uvcVuyonGiN7hPrnEA",
-    "credentials": [
+  --data-raw "{
+    \"did\": \"${DID}\",
+    \"credentials\": [
       {
-        "credentialsType": "UserCredential"
+        \"credentialsType\": \"UserCredential\"
       }  
     ]
-  }'
+  }"
 ```
 
 ## Update Grafana to use Verifiable Credentials
@@ -241,3 +268,54 @@ Once this is done, the camera can be connected to the emulator:
 Open Grafana at https://grafana.127.0.0.1.nip.io. Grafana will directly redirect to the OID4VP login page.
 
 Scan the QR with the Wallet("Authenticate" -> "Online") and select one of the credentials.
+
+
+
+## JWT from OID4VP
+
+```json
+{
+  "alg": "RS256",
+  "kid": "_9YyOuI7XYSCRt6D5TN9lyE6Mn1RMdo_iNMN6QPotjo",
+  "typ": "JWT"
+},
+{
+  "aud": [
+    "grafana.127.0.0.1.nip.io"
+  ],
+  "displayname": "Test",
+  "email": "admin@consumer.org",
+  "exp": 1772633698,
+  "iss": "https://verifier.org",
+  "login": "admin@consumer.org",
+  "name": "Test",
+  "roles": [
+    "Admin"
+  ],
+  "sub": "did:key:zDnaeaDjM1tU6PUrRnA3zqWLq9udgoutKzsZ7dHzTm2rxLoCh"
+}
+```
+
+
+## Alternative
+
+If the application has insufficient support for configuration of oauth2/oidc authentication, the Keycloak-IdentityProvider feature can be used. In this case, Keycloak will be configured as the login-provider for the application(keeping the ability to login via username), but also offer an OID4VC-backed identity provider. This provider will import new users or link already existing users with the information provided by the Identity Provider and allow login through the identity provider for future interactions.
+
+### Configure the provider
+
+Login to Keycloak's Admin-Console: https://keycloak.127.0.0.1.nip.io/
+Username: admin,  Password: ```kubectl get secret keycloak -ojson | jq -r '.data."admin-password"' | base64 -d```
+
+1. Switch to the `test-realm`
+2. Go to `Identity providers` -> `Add provider` -> select `OpenID Connect v1.0`
+3. Configure:
+```
+Alias: <name to be used for the provider>
+Discovery endpoint: https://verifier.org/services/grafana-oauth/.well-known/openid-configuration
+Client ID: grafana-oauth
+Secret: demo
+```
+4. After creation, go to "advanced" and configure the scopes:
+```
+Scopes: openid email profile offline_access roles
+```

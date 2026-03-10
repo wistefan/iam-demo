@@ -29,7 +29,7 @@ vcverifier:
           - "/"
   deployment:
     image:
-      tag: 6.4.2-PRE-1
+      tag: au
       pullPolicy: Always
     logging:
       level: DEBUG

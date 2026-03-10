@@ -95,6 +95,9 @@ extraVolumeMounts:
   - name: kc-env
     mountPath: /opt/bitnami/scripts/keycloak-env.sh
     subPath: keycloak-env.sh
+  - name: custom-ca
+    mountPath: /opt/bitnami/keycloak/conf/truststores/cacert.pem
+    subPath: cacert.pem
 
 extraVolumes:
   - name: kc-env
@@ -107,6 +110,9 @@ extraVolumes:
   - name: keystore
     persistentVolumeClaim:
       claimName: did-material-pvc
+  - name: custom-ca
+    secret:
+      secretName: root-ca
 
 extraEnvVars:
   - name: KEYCLOAK_LOG_LEVEL
@@ -126,3 +132,11 @@ extraEnvVars:
         key: store-pass
   - name: KC_HEAP_SIZE
     value: "1024m"
+  - name: HTTP_PROXY
+    value: "http://squid-proxy.infra.svc.cluster.local:8888"
+  - name: HTTPS_PROXY
+    value: "http://squid-proxy.infra.svc.cluster.local:8888"
+  - name: NO_PROXY
+    value: "localhost,127.0.0.1,.svc,.cluster.local"
+  - name: KC_SPI_TRUSTSTORE_FILE_HOSTNAME_VERIFICATION_POLICY
+    value: "ANY"
